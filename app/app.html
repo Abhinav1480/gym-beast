@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BEAST MODE GYM — AI Coach</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #e8002d;
+    --orange: #ff5400;
+    --dark: #0a0a0a;
+    --darker: #050505;
+    --card: #111111;
+    --border: #1e1e1e;
+    --text: #f0f0f0;
+    --muted: #666;
+    --gold: #ffd60a;
+    --salaar-gold: #d4af37;
+    --salaar-fire: #ff6b00;
+    --salaar-bg: #0d0800;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--darker); color: var(--text); font-family: 'Barlow', sans-serif; overflow-x: hidden; cursor: none; }
+  .cursor { width: 12px; height: 12px; background: var(--red); border-radius: 50%; position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9999; transition: transform 0.1s; mix-blend-mode: difference; }
+  .cursor-ring { width: 36px; height: 36px; border: 2px solid var(--red); border-radius: 50%; position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9998; transition: all 0.15s ease; opacity: 0.5; }
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 16px 40px; background: rgba(5,5,5,0.9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 4px; color: var(--red); cursor: none; }
+  .logo span { color: var(--text); }
+  .nav-links { display: flex; gap: 32px; list-style: none; }
+  .nav-links a { color: var(--muted); text-decoration: none; font-family: 'Barlow Condensed', sans-serif; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; transition: color 0.2s; cursor: none; }
+  .nav-links a:hover { color: var(--red); }
+  .nav-links a.salaar-link { color: var(--salaar-gold) !important; }
+  .nav-user { display: flex; align-items: center; gap: 12px; }
+  #user-name-nav { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; letter-spacing: 1px; color: var(--gold); display: none; }
+  .hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 120px 40px 80px; position: relative; overflow: hidden; }
+  .hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 70% 50%, rgba(232,0,45,0.08) 0%, transparent 70%); pointer-events: none; }
+  .hero-bg-text { position: absolute; right: -20px; top: 50%; transform: translateY(-50%); font-family: 'Bebas Neue', sans-serif; font-size: clamp(120px, 22vw, 300px); color: rgba(255,255,255,0.02); line-height: 1; pointer-events: none; user-select: none; }
+  .hero-tag { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; letter-spacing: 4px; text-transform: uppercase; color: var(--red); margin-bottom: 20px; animation: fadeUp 0.8s ease both; }
+  .hero h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(60px, 10vw, 130px); line-height: 0.9; letter-spacing: 2px; animation: fadeUp 0.8s 0.1s ease both; max-width: 700px; }
+  .hero h1 .accent { color: var(--red); }
+  .hero-sub { margin-top: 24px; font-size: 16px; color: var(--muted); max-width: 460px; line-height: 1.7; animation: fadeUp 0.8s 0.2s ease both; font-weight: 300; }
+  .hero-cta { margin-top: 40px; display: flex; gap: 16px; animation: fadeUp 0.8s 0.3s ease both; flex-wrap: wrap; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+  .btn { font-family: 'Barlow Condensed', sans-serif; font-size: 15px; letter-spacing: 2px; text-transform: uppercase; padding: 14px 32px; border: none; cursor: none; transition: all 0.2s; font-weight: 600; text-decoration: none; display: inline-block; }
+  .btn-primary { background: var(--red); color: white; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+  .btn-primary:hover { background: var(--orange); transform: scale(1.03); }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+  .btn-outline:hover { border-color: var(--red); color: var(--red); }
+  .btn-gold { background: var(--gold); color: #000; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+  .btn-gold:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(255,214,10,0.4); }
+  .btn-salaar { background: linear-gradient(135deg, #d4af37, #ff6b00); color: #000; font-weight: 700; letter-spacing: 3px; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+  .btn-salaar:hover { transform: scale(1.05); box-shadow: 0 0 40px rgba(212,175,55,0.6); }
+  .btn-sm { padding: 10px 20px; font-size: 12px; }
+  section { padding: 80px 40px; }
+  .section-label { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 4px; text-transform: uppercase; color: var(--red); margin-bottom: 12px; }
+  .section-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px, 6vw, 72px); letter-spacing: 2px; line-height: 1; margin-bottom: 40px; }
+  #setup-section { background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .setup-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; max-width: 900px; }
+  .form-group label { display: block; font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .form-group input, .form-group select { width: 100%; background: var(--darker); border: 1px solid var(--border); color: var(--text); padding: 12px 16px; font-family: 'Barlow', sans-serif; font-size: 15px; outline: none; transition: border-color 0.2s; cursor: none; appearance: none; }
+  .form-group input:focus, .form-group select:focus { border-color: var(--red); }
+  .form-group select option { background: var(--dark); }
+  #workout-section { background: var(--darker); }
+  .week-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 48px; }
+  .day-card { background: var(--card); border: 1px solid var(--border); padding: 24px 16px; text-align: center; cursor: none; transition: all 0.25s; position: relative; overflow: hidden; }
+  .day-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--red); transform: scaleX(0); transition: transform 0.3s; }
+  .day-card:hover, .day-card.active { border-color: var(--red); transform: translateY(-4px); }
+  .day-card:hover::after, .day-card.active::after { transform: scaleX(1); }
+  .day-card.active { background: rgba(232,0,45,0.08); }
+  .day-card.rest { opacity: 0.5; }
+  .day-name { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .day-muscle { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px; color: var(--text); }
+  .day-card.active .day-muscle { color: var(--red); }
+  .day-icon { font-size: 28px; margin-bottom: 8px; }
+  #exercise-panel { display: none; background: var(--card); border: 1px solid var(--border); padding: 32px; margin-top: 24px; animation: slideDown 0.3s ease; }
+  #exercise-panel.show { display: block; }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+  .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 16px; }
+  .panel-title { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: var(--red); letter-spacing: 2px; }
+  .exercise-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .exercise-card { background: var(--darker); border: 1px solid var(--border); padding: 20px; transition: border-color 0.2s; }
+  .exercise-card:hover { border-color: var(--orange); }
+  .ex-num { font-family: 'Bebas Neue', sans-serif; font-size: 48px; color: rgba(232,0,45,0.15); line-height: 1; margin-bottom: 4px; }
+  .ex-name { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 1px; color: var(--text); margin-bottom: 8px; }
+  .ex-detail { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .ex-sets { display: inline-block; background: rgba(232,0,45,0.15); color: var(--red); font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; padding: 4px 10px; margin-top: 10px; }
+  #beast-section { background: var(--red); position: relative; overflow: hidden; text-align: center; padding: 80px 40px; }
+  #beast-section::before { content: 'BEAST'; position: absolute; font-family: 'Bebas Neue', sans-serif; font-size: 40vw; color: rgba(0,0,0,0.1); top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; letter-spacing: -10px; }
+  .beast-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(50px, 10vw, 110px); letter-spacing: 4px; color: white; text-shadow: 0 0 80px rgba(0,0,0,0.5); margin-bottom: 16px; position: relative; }
+  .beast-sub { font-size: 16px; color: rgba(255,255,255,0.7); margin-bottom: 32px; max-width: 500px; margin-left: auto; margin-right: auto; position: relative; }
+  .beast-active { display: none; position: relative; }
+  .beast-active.on { display: block; animation: beastPulse 1s ease infinite alternate; }
+  @keyframes beastPulse { from { transform: scale(1); } to { transform: scale(1.02); } }
+  .beast-timer { font-family: 'Bebas Neue', sans-serif; font-size: 120px; color: var(--gold); letter-spacing: 8px; text-shadow: 0 0 40px rgba(255,214,10,0.6); line-height: 1; }
+  .beast-label { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; letter-spacing: 4px; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-top: 8px; }
+
+  /* ===== SALAAR INTRO OVERLAY ===== */
+  #salaar-intro { position: fixed; inset: 0; background: #000; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.6s ease; overflow: hidden; }
+  #salaar-intro.active { opacity: 1; pointer-events: all; }
+  .s-bg { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(212,175,55,0.18) 0%, rgba(255,107,0,0.1) 40%, #000 80%); animation: sBgPulse 3s ease infinite alternate; }
+  @keyframes sBgPulse { from { opacity: 0.7; } to { opacity: 1; } }
+  .s-fire { position: absolute; bottom: 0; left: 0; right: 0; height: 220px; background: linear-gradient(to top, rgba(255,107,0,0.35), transparent); animation: sFireFlick 0.7s ease infinite alternate; }
+  @keyframes sFireFlick { from { opacity: 0.5; } to { opacity: 1; } }
+  .s-particle { position: absolute; width: 3px; height: 3px; background: #d4af37; border-radius: 50%; animation: sParticle linear infinite; }
+  @keyframes sParticle { 0% { transform: translateY(100vh); opacity: 1; } 100% { transform: translateY(-80px) translateX(calc(var(--d,0) * 1px)); opacity: 0; } }
+  .s-emblem { font-size: 72px; margin-bottom: 24px; position: relative; animation: sEmblemPulse 2s ease infinite; filter: drop-shadow(0 0 30px rgba(212,175,55,0.9)); }
+  @keyframes sEmblemPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); filter: drop-shadow(0 0 60px rgba(212,175,55,1)); } }
+  .s-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(70px,16vw,180px); letter-spacing: 14px; background: linear-gradient(135deg, #d4af37 0%, #ff6b00 50%, #d4af37 100%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: sShine 3s linear infinite; position: relative; line-height: 1; }
+  @keyframes sShine { to { background-position: 200% center; } }
+  .s-subtitle { font-family: 'Barlow Condensed', sans-serif; font-size: clamp(13px,2vw,18px); letter-spacing: 8px; text-transform: uppercase; color: rgba(212,175,55,0.65); margin-top: 6px; margin-bottom: 40px; position: relative; }
+  .s-dialogue-box { position: relative; max-width: 680px; width: calc(100% - 40px); padding: 28px 36px; border: 1px solid rgba(212,175,55,0.35); background: rgba(0,0,0,0.85); margin-bottom: 36px; text-align: center; }
+  .s-dialogue-box::before { content: ''; position: absolute; top: -1px; left: -1px; width: 22px; height: 22px; border-top: 2px solid #d4af37; border-left: 2px solid #d4af37; }
+  .s-dialogue-box::after { content: ''; position: absolute; bottom: -1px; right: -1px; width: 22px; height: 22px; border-bottom: 2px solid #d4af37; border-right: 2px solid #d4af37; }
+  .s-dialogue-text { font-family: 'Barlow Condensed', sans-serif; font-size: clamp(16px,3vw,26px); line-height: 1.55; color: #f5e6a3; font-style: italic; letter-spacing: 0.5px; min-height: 78px; }
+  .s-dialogue-attr { margin-top: 14px; font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 4px; text-transform: uppercase; color: #d4af37; opacity: 0.65; }
+  .s-progress { display: flex; gap: 6px; margin-bottom: 28px; }
+  .s-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(212,175,55,0.25); transition: background 0.4s; }
+  .s-dot.active { background: #d4af37; }
+  .s-enter-btn { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 6px; padding: 16px 48px; background: linear-gradient(135deg, #d4af37, #ff6b00); color: #000; border: none; cursor: none; clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px)); transition: all 0.3s; box-shadow: 0 0 40px rgba(212,175,55,0.4); display: none; }
+  .s-enter-btn:hover { transform: scale(1.05); box-shadow: 0 0 70px rgba(212,175,55,0.8); }
+
+  /* ===== SALAAR SECTION ===== */
+  #salaar-section { background: var(--salaar-bg); position: relative; overflow: hidden; padding: 80px 40px; border-top: 1px solid rgba(212,175,55,0.2); border-bottom: 1px solid rgba(212,175,55,0.2); }
+  #salaar-section::before { content: 'SALAAR'; position: absolute; font-family: 'Bebas Neue', sans-serif; font-size: 28vw; background: linear-gradient(135deg,rgba(212,175,55,0.05),rgba(255,107,0,0.03)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; white-space: nowrap; }
+  .s-glow-line { width: 100%; height: 1px; background: linear-gradient(to right, transparent, #d4af37, #ff6b00, #d4af37, transparent); margin-bottom: 48px; }
+  .s-sec-label { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 6px; text-transform: uppercase; color: var(--salaar-gold); margin-bottom: 12px; position: relative; }
+  .s-sec-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(50px,8vw,100px); letter-spacing: 4px; line-height: 0.9; background: linear-gradient(135deg, #d4af37, #ff6b00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 12px; position: relative; }
+  .s-sec-sub { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; letter-spacing: 2px; color: rgba(212,175,55,0.55); margin-bottom: 40px; max-width: 500px; position: relative; }
+  .s-quote-box { background: rgba(212,175,55,0.05); border: 1px solid rgba(212,175,55,0.2); border-left: 3px solid #d4af37; padding: 24px 32px; max-width: 700px; margin-bottom: 40px; position: relative; min-height: 96px; }
+  .s-quote-text { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; color: #f5e6a3; font-style: italic; line-height: 1.5; letter-spacing: 0.5px; transition: opacity 0.5s ease; }
+  .s-quote-src { margin-top: 12px; font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: #d4af37; opacity: 0.65; }
+  .s-session-btns { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 40px; position: relative; }
+  .s-mode-active { display: none; position: relative; }
+  .s-mode-active.on { display: block; }
+  .s-timer { font-family: 'Bebas Neue', sans-serif; font-size: 120px; background: linear-gradient(135deg,#d4af37,#ff6b00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 8px; line-height: 1; animation: sTimerPulse 1s ease infinite alternate; }
+  @keyframes sTimerPulse { from { filter: drop-shadow(0 0 20px rgba(212,175,55,0.5)); } to { filter: drop-shadow(0 0 60px rgba(212,175,55,0.9)); } }
+  .s-timer-label { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; letter-spacing: 6px; text-transform: uppercase; color: rgba(212,175,55,0.6); margin-top: 8px; }
+  .s-cardio-label { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 4px; text-transform: uppercase; color: var(--salaar-gold); margin-bottom: 12px; position: relative; }
+  .s-cardio-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(30px,5vw,56px); letter-spacing: 2px; background: linear-gradient(135deg,#d4af37,#ff6b00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 32px; position: relative; }
+  .s-cardio-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; position: relative; }
+  .s-ex-card { background: rgba(212,175,55,0.03); border: 1px solid rgba(212,175,55,0.18); padding: 24px; transition: all 0.3s; position: relative; overflow: hidden; }
+  .s-ex-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(to right,#d4af37,#ff6b00); transform: scaleX(0); transition: transform 0.3s; }
+  .s-ex-card:hover { border-color: rgba(212,175,55,0.45); transform: translateY(-4px); }
+  .s-ex-card:hover::before { transform: scaleX(1); }
+  .s-ex-num { font-family: 'Bebas Neue', sans-serif; font-size: 48px; color: rgba(212,175,55,0.1); line-height: 1; margin-bottom: 4px; }
+  .s-ex-name { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 1px; color: #f5e6a3; margin-bottom: 8px; }
+  .s-ex-detail { font-size: 13px; color: rgba(212,175,55,0.55); line-height: 1.6; }
+  .s-ex-sets { display: inline-block; background: rgba(212,175,55,0.1); color: #d4af37; font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; padding: 4px 10px; margin-top: 10px; border: 1px solid rgba(212,175,55,0.25); }
+
+  #diet-section { background: var(--card); border-top: 1px solid var(--border); }
+  .diet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+  .meal-card { background: var(--darker); border: 1px solid var(--border); padding: 24px; position: relative; }
+  .meal-time { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--red); letter-spacing: 2px; margin-bottom: 4px; }
+  .meal-name { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+  .meal-items { list-style: none; }
+  .meal-items li { font-size: 13px; color: var(--muted); padding: 4px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+  .meal-items li:last-child { border: none; }
+  .macro-badge { display: inline-block; font-family: 'Barlow Condensed', sans-serif; font-size: 11px; letter-spacing: 1px; padding: 3px 8px; margin-top: 12px; margin-right: 4px; background: rgba(255,255,255,0.05); color: var(--muted); }
+  .ai-loading { text-align: center; padding: 60px 20px; display: none; }
+  .ai-loading.show { display: block; }
+  .spinner { width: 48px; height: 48px; border: 3px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ai-tag { display: inline-flex; align-items: center; gap: 6px; background: rgba(232,0,45,0.1); border: 1px solid rgba(232,0,45,0.3); color: var(--red); font-family: 'Barlow Condensed', sans-serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; padding: 4px 10px; margin-bottom: 24px; }
+  .ai-dot { width: 6px; height: 6px; background: var(--red); border-radius: 50%; animation: pulse 1.5s ease infinite; }
+  @keyframes pulse { 0%,100% { opacity:1;transform:scale(1); } 50% { opacity:0.4;transform:scale(0.7); } }
+  #bmi-section { background: var(--darker); }
+  .bmi-container { max-width: 600px; }
+  .bmi-result-bar { height: 8px; background: linear-gradient(to right,#3b82f6,#22c55e,#eab308,#ef4444); border-radius: 4px; margin: 24px 0 8px; position: relative; }
+  .bmi-indicator { position: absolute; top: 50%; transform: translate(-50%,-50%); width: 20px; height: 20px; background: white; border: 3px solid var(--red); border-radius: 50%; transition: left 0.8s cubic-bezier(0.34,1.56,0.64,1); left: 0%; }
+  .bmi-labels { display: flex; justify-content: space-between; font-family: 'Barlow Condensed', sans-serif; font-size: 11px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
+  .bmi-value { font-family: 'Bebas Neue', sans-serif; font-size: 80px; color: var(--red); letter-spacing: 4px; line-height: 1; margin: 16px 0 4px; }
+  .bmi-category { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
+  #progress-section { background: var(--card); border-top: 1px solid var(--border); }
+  .progress-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 40px; }
+  .stat-card { background: var(--darker); border: 1px solid var(--border); padding: 24px; position: relative; overflow: hidden; }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--red); }
+  .stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 52px; color: var(--text); letter-spacing: 2px; line-height: 1; }
+  .stat-unit { font-size: 16px; color: var(--muted); margin-left: 4px; }
+  .stat-label { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+  .stat-change { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; margin-top: 8px; color: #22c55e; }
+  .log-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; max-width: 700px; margin-bottom: 16px; }
+  #ai-section { background: var(--darker); }
+  .chat-box { background: var(--card); border: 1px solid var(--border); max-width: 700px; height: 400px; overflow-y: auto; padding: 20px; margin-bottom: 16px; scroll-behavior: smooth; }
+  .chat-msg { margin-bottom: 20px; animation: fadeUp 0.3s ease; }
+  .chat-msg.user { text-align: right; }
+  .chat-bubble { display: inline-block; padding: 12px 16px; max-width: 80%; font-size: 14px; line-height: 1.6; text-align: left; }
+  .chat-msg.ai .chat-bubble { background: rgba(232,0,45,0.08); border: 1px solid rgba(232,0,45,0.2); color: var(--text); }
+  .chat-msg.user .chat-bubble { background: var(--red); color: white; }
+  .chat-sender { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .chat-input-row { display: flex; gap: 12px; max-width: 700px; }
+  .chat-input-row input { flex: 1; background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 14px 16px; font-family: 'Barlow', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s; cursor: none; }
+  .chat-input-row input:focus { border-color: var(--red); }
+  footer { background: var(--darker); border-top: 1px solid var(--border); padding: 32px 40px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .footer-logo { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--red); letter-spacing: 4px; }
+  .footer-text { font-size: 12px; color: var(--muted); letter-spacing: 1px; }
+  .notif { position: fixed; bottom: 30px; right: 30px; background: var(--card); border: 1px solid var(--red); padding: 16px 24px; font-family: 'Barlow Condensed', sans-serif; font-size: 15px; letter-spacing: 1px; color: var(--text); z-index: 999; transform: translateY(100px); opacity: 0; transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1); max-width: 320px; }
+  .notif.show { transform: translateY(0); opacity: 1; }
+  @media (max-width: 600px) { nav { padding: 12px 20px; } .nav-links { display: none; } section, .hero { padding: 60px 20px; } .week-grid { grid-template-columns: repeat(3,1fr); } }
+</style>
+</head>
+<body>
+
+<!-- SALAAR INTRO OVERLAY -->
+<div id="salaar-intro">
+  <div class="s-bg"></div>
+  <div class="s-fire"></div>
+  <div class="s-particle" style="left:8%;animation-duration:4s;--d:30;"></div>
+  <div class="s-particle" style="left:18%;animation-duration:6s;animation-delay:1s;--d:-25;"></div>
+  <div class="s-particle" style="left:32%;animation-duration:5s;animation-delay:0.5s;--d:50;width:5px;height:5px;"></div>
+  <div class="s-particle" style="left:50%;animation-duration:7s;animation-delay:2s;--d:-40;"></div>
+  <div class="s-particle" style="left:68%;animation-duration:4.5s;animation-delay:0.3s;--d:20;"></div>
+  <div class="s-particle" style="left:80%;animation-duration:6.5s;animation-delay:1.5s;--d:-60;"></div>
+  <div class="s-particle" style="left:92%;animation-duration:5.5s;animation-delay:0.8s;--d:15;width:4px;height:4px;"></div>
+  <div class="s-particle" style="left:42%;animation-duration:8s;animation-delay:3s;--d:-35;width:4px;height:4px;"></div>
+
+  <div class="s-emblem">🔱</div>
+  <div class="s-title">SALAAR</div>
+  <div class="s-subtitle">Mode Activated — Unstoppable Force</div>
+
+  <div class="s-progress" id="s-progress"></div>
+
+  <div class="s-dialogue-box">
+    <div class="s-dialogue-text" id="s-dialogue-text">Loading the legend...</div>
+    <div class="s-dialogue-attr">— Salaar</div>
+  </div>
+
+  <button class="s-enter-btn" id="s-enter-btn" onclick="enterSalaarMode()">⚡ ENTER THE ARENA</button>
+</div>
+
+<!-- Cursor -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursor-ring"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">BEAST<span>MODE</span></div>
+  <ul class="nav-links">
+    <li><a href="#workout-section">Workout</a></li>
+    <li><a href="#beast-section">Beast Mode</a></li>
+    <li><a href="#salaar-section" class="salaar-link">🔱 Salaar</a></li>
+    <li><a href="#diet-section">Diet</a></li>
+    <li><a href="#bmi-section">BMI</a></li>
+    <li><a href="#progress-section">Progress</a></li>
+    <li><a href="#ai-section">AI Coach</a></li>
+  </ul>
+  <div class="nav-user"><span id="user-name-nav">— Loading</span></div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-bg-text">IRON</div>
+  <div class="hero-tag">⚡ AI-Powered Gym Coach</div>
+  <h1>NO GYM<br><span class="accent">COACH?</span><br>NO PROBLEM.</h1>
+  <p class="hero-sub">Your personal AI trainer. Customized daily workouts, smart diet plans, real-time progress tracking — all in one beast of a platform.</p>
+  <div class="hero-cta">
+    <a href="#setup-section" class="btn btn-primary">Start Training</a>
+    <a href="#beast-section" class="btn btn-gold">🔥 Beast Mode</a>
+    <button class="btn btn-salaar" onclick="triggerSalaarIntro()">🔱 Salaar Mode</button>
+  </div>
+</section>
+
+<!-- SETUP -->
+<section id="setup-section">
+  <div class="section-label">Step 01 — Your Profile</div>
+  <div class="section-title">SET UP YOUR<br>BEAST PROFILE</div>
+  <div class="setup-grid">
+    <div class="form-group"><label>Your Name</label><input type="text" id="inp-name" placeholder="Enter name"></div>
+    <div class="form-group"><label>Age</label><input type="number" id="inp-age" placeholder="25" min="10" max="80"></div>
+    <div class="form-group"><label>Weight (kg)</label><input type="number" id="inp-weight" placeholder="75" step="0.1"></div>
+    <div class="form-group"><label>Height (cm)</label><input type="number" id="inp-height" placeholder="175"></div>
+    <div class="form-group"><label>Goal</label><select id="inp-goal"><option value="muscle">Build Muscle</option><option value="fat_loss">Fat Loss</option><option value="strength">Strength</option><option value="endurance">Endurance</option><option value="general">General Fitness</option></select></div>
+    <div class="form-group"><label>Experience</label><select id="inp-exp"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></div>
+  </div>
+  <br>
+  <button class="btn btn-primary" onclick="saveProfile()">💾 Save Profile & Generate Plan</button>
+</section>
+
+<!-- WORKOUT -->
+<section id="workout-section">
+  <div class="section-label">Step 02 — Daily Split</div>
+  <div class="section-title">THIS WEEK'S<br>BATTLE PLAN</div>
+  <div class="week-grid" id="week-grid"></div>
+  <div id="exercise-panel">
+    <div class="panel-header">
+      <div class="panel-title" id="panel-title">CHEST DAY</div>
+      <button class="btn btn-primary btn-sm" onclick="generateAIWorkout()">🤖 AI Regenerate</button>
+    </div>
+    <div class="exercise-grid" id="exercise-grid"></div>
+  </div>
+</section>
+
+<!-- BEAST MODE -->
+<section id="beast-section">
+  <div class="beast-title">⚡ ACTIVATE<br>BEAST MODE</div>
+  <p class="beast-sub">Lock in. No distractions. Pure focused training. Start your session timer and unleash your inner beast.</p>
+  <div id="beast-default"><button class="btn btn-gold" onclick="startBeast()">🔥 UNLEASH THE BEAST</button></div>
+  <div class="beast-active" id="beast-active">
+    <div class="beast-timer" id="beast-timer">00:00</div>
+    <div class="beast-label">Session Active — Stay Focused</div>
+    <br><br>
+    <button class="btn btn-outline" onclick="stopBeast()" style="color:white;border-color:rgba(255,255,255,0.3)">End Session</button>
+  </div>
+</section>
+
+<!-- SALAAR MODE SECTION -->
+<section id="salaar-section">
+  <div class="s-glow-line"></div>
+  <div class="s-sec-label">⚔️ The Legend Awakens</div>
+  <div class="s-sec-title">SALAAR<br>MODE</div>
+  <p class="s-sec-sub">Train like a warlord. No limits. No excuses. The fire inside you is unstoppable.</p>
+
+  <div class="s-quote-box">
+    <div class="s-quote-text" id="s-quote-text">"I don't fight to survive. I fight because I was born for this."</div>
+    <div class="s-quote-src">🔱 Salaar</div>
+  </div>
+
+  <div class="s-session-btns" id="s-session-btns">
+    <button class="btn btn-salaar" onclick="triggerSalaarIntro()">🔱 Open Salaar Intro</button>
+    <button class="btn btn-salaar" onclick="startSalaarSession()" style="background:linear-gradient(135deg,#ff6b00,#d4af37)">⚡ Start Salaar Session</button>
+  </div>
+  <div class="s-mode-active" id="s-mode-active">
+    <div class="s-timer" id="s-timer">00:00</div>
+    <div class="s-timer-label">Salaar Session — The Arena Is Yours</div>
+    <br><br>
+    <button class="btn btn-outline" onclick="stopSalaarSession()" style="border-color:rgba(212,175,55,0.4);color:#d4af37;">End Session</button>
+  </div>
+
+  <div style="position:relative;margin-top:56px;">
+    <div class="s-cardio-label">⚡ Salaar Warrior Cardio Arsenal</div>
+    <div class="s-cardio-title">WARRIOR<br>CARDIO PROTOCOL</div>
+    <div class="s-cardio-grid" id="s-cardio-grid"></div>
+  </div>
+</section>
+
+<!-- DIET -->
+<section id="diet-section">
+  <div class="section-label">Step 03 — AI Nutrition</div>
+  <div class="section-title">TODAY'S<br>DIET PLAN</div>
+  <div class="ai-tag"><div class="ai-dot"></div> AI Generated — Personalized for Your Goals</div>
+  <div id="diet-day-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:32px;"></div>
+  <div class="ai-loading" id="diet-loading"><div class="spinner"></div><p style="font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;">AI Generating Your Diet Plan...</p></div>
+  <div class="diet-grid" id="diet-grid"></div>
+</section>
+
+<!-- BMI -->
+<section id="bmi-section">
+  <div class="section-label">BMI Calculator</div>
+  <div class="section-title">KNOW YOUR<br>NUMBERS</div>
+  <div class="bmi-container">
+    <div class="setup-grid" style="max-width:400px;grid-template-columns:1fr 1fr;">
+      <div class="form-group"><label>Weight (kg)</label><input type="number" id="bmi-weight" placeholder="75"></div>
+      <div class="form-group"><label>Height (cm)</label><input type="number" id="bmi-height" placeholder="175"></div>
+    </div>
+    <br>
+    <button class="btn btn-primary" onclick="calcBMI()">Calculate BMI</button>
+    <div id="bmi-result" style="display:none;margin-top:32px;">
+      <div class="bmi-value" id="bmi-val">--</div>
+      <div class="bmi-category" id="bmi-cat">--</div>
+      <div class="bmi-result-bar"><div class="bmi-indicator" id="bmi-ind"></div></div>
+      <div class="bmi-labels"><span>Underweight</span><span>Normal</span><span>Overweight</span><span>Obese</span></div>
+      <p style="margin-top:24px;font-size:14px;color:var(--muted);max-width:440px;line-height:1.7;" id="bmi-advice"></p>
+    </div>
+  </div>
+</section>
+
+<!-- PROGRESS -->
+<section id="progress-section">
+  <div class="section-label">Daily Growth Tracker</div>
+  <div class="section-title">TRACK YOUR<br>EVOLUTION</div>
+  <div class="progress-grid" id="progress-grid"></div>
+  <div style="margin-top:24px;">
+    <p style="font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:16px;">Log Today's Stats</p>
+    <div class="log-form">
+      <div class="form-group"><label>Weight (kg)</label><input type="number" id="log-weight" placeholder="75" step="0.1"></div>
+      <div class="form-group"><label>Workouts Done</label><input type="number" id="log-workouts" placeholder="1" min="0"></div>
+      <div class="form-group"><label>Calories Eaten</label><input type="number" id="log-cals" placeholder="2200"></div>
+      <div class="form-group"><label>Water (L)</label><input type="number" id="log-water" placeholder="2.5" step="0.1"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="logProgress()">📈 Log Today</button>
+  </div>
+  <div id="progress-history" style="margin-top:40px;"></div>
+</section>
+
+<!-- AI CHAT -->
+<section id="ai-section">
+  <div class="section-label">AI Personal Trainer</div>
+  <div class="section-title">ASK YOUR<br>AI COACH</div>
+  <div class="ai-tag"><div class="ai-dot"></div> Powered by Claude AI</div>
+  <div class="chat-box" id="chat-box">
+    <div class="chat-msg ai">
+      <div class="chat-sender">AI Coach</div>
+      <div class="chat-bubble">💪 What's up, Beast! I'm your AI coach. Ask me anything — workout tips, diet advice, form corrections, motivation — I got you. Let's build something legendary.</div>
+    </div>
+  </div>
+  <div class="chat-input-row">
+    <input type="text" id="chat-input" placeholder="Ask your AI coach anything..." onkeydown="if(event.key==='Enter')sendChat()">
+    <button class="btn btn-primary" onclick="sendChat()">Send</button>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">BEASTMODE</div>
+  <div class="footer-text">AI-Powered Gym Coach © 2025 — Built Different</div>
+</footer>
+
+<div class="notif" id="notif"></div>
+
+<script>
+// CURSOR
+const cursor = document.getElementById('cursor'), ring = document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{ mx=e.clientX;my=e.clientY;cursor.style.left=mx-6+'px';cursor.style.top=my-6+'px'; });
+setInterval(()=>{ rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx-18+'px';ring.style.top=ry-18+'px'; },16);
+
+// DB
+const DB={ get:k=>{try{return JSON.parse(localStorage.getItem('bm_'+k));}catch{return null;}}, set:(k,v)=>localStorage.setItem('bm_'+k,JSON.stringify(v)) };
+
+// SALAAR DIALOGUES
+const SALAAR_DLGS = [
+  "The world doesn't run on talent. It runs on will. Your will.",
+  "Pain is just a conversation your body is having with your mind. Hang up the call.",
+  "They built walls to stop people like you. That's why you train to be unstoppable.",
+  "A warrior doesn't ask how hard the battle is. He asks when it begins.",
+  "Every scar you carry is a story of survival. Wear them like armor.",
+  "You are not just training your body. You are forging your identity.",
+  "The fire inside you must burn hotter than the fire around you.",
+  "Weakness is a choice. Strength is also a choice. Choose wisely.",
+  "I don't break under pressure. I am pressure.",
+  "The difference between a soldier and a warrior? The warrior chose this life.",
+];
+
+const SALAAR_QUOTES = [
+  "I don't fight to survive. I fight because I was born for this.",
+  "Let them underestimate you. That silence is your greatest weapon.",
+  "Every enemy you face today makes you stronger for tomorrow's war.",
+  "The arena doesn't care about your excuses. Only your effort.",
+  "Blood, sweat, and iron — the three pillars of a legend.",
+  "You don't need motivation. You need discipline. Motivation fades. Discipline builds empires.",
+  "Train in the dark so you can shine when the lights come on.",
+  "My enemies see a man. My enemies are wrong.",
+  "Fear is just the gap between who you are and who you must become.",
+  "The strongest weapon is a mind that refuses to surrender.",
+];
+
+// WORKOUT DATA
+const SPLIT = [
+  { day:'MON', muscle:'CHEST', icon:'💪', exercises:[
+    {name:'Barbell Bench Press',sets:'4',reps:'8-10',tip:'Keep shoulder blades retracted, drive feet into floor'},
+    {name:'Incline Dumbbell Press',sets:'3',reps:'10-12',tip:'30-45° incline for upper chest activation'},
+    {name:'Cable Flyes',sets:'3',reps:'12-15',tip:'Squeeze at contraction, control eccentric'},
+    {name:'Push-Ups (Weighted)',sets:'3',reps:'Failure',tip:'Elevate feet for more upper chest emphasis'},
+    {name:'Chest Dips',sets:'3',reps:'10-12',tip:'Lean forward to target chest over triceps'},
+    {name:'Machine Chest Press',sets:'2',reps:'15-20',tip:'Use as finisher, full contraction each rep'},
+  ]},
+  { day:'TUE', muscle:'BACK', icon:'🏋️', exercises:[
+    {name:'Deadlift',sets:'4',reps:'5-6',tip:'Hinge at hips, neutral spine, drive through heels'},
+    {name:'Pull-Ups',sets:'4',reps:'8-12',tip:'Full dead hang, pull elbows to ribs'},
+    {name:'Barbell Bent-Over Row',sets:'4',reps:'8-10',tip:'45° torso, pull to lower chest'},
+    {name:'Lat Pulldown',sets:'3',reps:'10-12',tip:'Wide grip, pull to upper chest, squeeze lats'},
+    {name:'Single-Arm Dumbbell Row',sets:'3',reps:'10-12',tip:'Brace on bench, full range of motion'},
+    {name:'Face Pulls',sets:'3',reps:'15-20',tip:'External rotation at end for rear delts'},
+  ]},
+  { day:'WED', muscle:'LEGS', icon:'🦵', exercises:[
+    {name:'Barbell Back Squat',sets:'4',reps:'6-8',tip:'Break parallel, knees track toes, neutral spine'},
+    {name:'Romanian Deadlift',sets:'4',reps:'10-12',tip:'Hip hinge pattern, feel hamstring stretch'},
+    {name:'Leg Press',sets:'3',reps:'12-15',tip:'Foot placement determines muscle emphasis'},
+    {name:'Walking Lunges',sets:'3',reps:'12 each',tip:'Step long enough for 90° knee angle'},
+    {name:'Leg Curl',sets:'3',reps:'12-15',tip:'Full contraction, slow eccentric'},
+    {name:'Calf Raises',sets:'4',reps:'20-25',tip:'Pause at bottom and top, full range'},
+  ]},
+  { day:'THU', muscle:'REST', icon:'😴', exercises:[] },
+  { day:'FRI', muscle:'SHOULDERS', icon:'🎯', exercises:[
+    {name:'Overhead Press (BB)',sets:'4',reps:'6-8',tip:'Core tight, press straight up, slight tilt back'},
+    {name:'Dumbbell Lateral Raise',sets:'4',reps:'12-15',tip:'Lead with elbows, slight lean forward'},
+    {name:'Arnold Press',sets:'3',reps:'10-12',tip:'Rotate throughout the movement'},
+    {name:'Rear Delt Fly',sets:'3',reps:'15-20',tip:'Slight bend in elbows, retract shoulder blades'},
+    {name:'Upright Row',sets:'3',reps:'10-12',tip:'Use EZ bar, pull to chin level'},
+    {name:'Cable Lateral Raise',sets:'2',reps:'15 each',tip:'Unilateral for better mind-muscle connection'},
+  ]},
+  { day:'SAT', muscle:'ARMS', icon:'💥', exercises:[
+    {name:'Barbell Curl',sets:'4',reps:'8-10',tip:'Strict form, elbows stay at sides'},
+    {name:'Skull Crushers',sets:'4',reps:'10-12',tip:'Lower to forehead, full extension'},
+    {name:'Incline Dumbbell Curl',sets:'3',reps:'10-12',tip:'Full stretch at bottom for long head'},
+    {name:'Tricep Pushdown',sets:'3',reps:'12-15',tip:'Keep elbows tucked, squeeze at lockout'},
+    {name:'Hammer Curl',sets:'3',reps:'10 each',tip:'Neutral grip targets brachialis'},
+    {name:'Overhead Tricep Ext.',sets:'3',reps:'12-15',tip:'Long head emphasis, overhead position'},
+  ]},
+  { day:'SUN', muscle:'CARDIO', icon:'🔥', exercises:[
+    {name:'Plank',sets:'3',reps:'60s',tip:'Posterior pelvic tilt, squeeze everything'},
+    {name:'Cable Crunch',sets:'4',reps:'15-20',tip:'Crunch with abs, not hip flexors'},
+    {name:'Hanging Leg Raise',sets:'3',reps:'12-15',tip:'Control the descent, no swinging'},
+    {name:'Ab Wheel Rollout',sets:'3',reps:'10-12',tip:'Keep low back flat throughout'},
+    {name:'Russian Twists',sets:'3',reps:'20 each',tip:'Rotate from thoracic spine'},
+    {name:'Dead Bug',sets:'3',reps:'10 each',tip:'Press lower back into floor throughout'},
+  ]},
+];
+
+// SALAAR CARDIO
+const SALAAR_CARDIO = [
+  {name:'Battle Rope Slams',sets:'5',reps:'30s',tip:'Drive from hips and shoulders — full power every slam, like crushing an enemy'},
+  {name:'Burpee Box Jumps',sets:'4',reps:'10',tip:'Explode off the ground. No hesitation. A warrior never pauses mid-battle'},
+  {name:'Treadmill Sprint Intervals',sets:'6',reps:'30s on / 30s off',tip:'Sprint at 90% max. This is your war charge — hold nothing back'},
+  {name:'Jump Rope Double Unders',sets:'4',reps:'50 reps',tip:'Wrists loose, core tight. Rhythm is power. Warriors move in rhythm'},
+  {name:'Sled Push',sets:'5',reps:'20 meters',tip:'Drive through the floor. Low hips, arms locked. This is what it feels like to move a mountain'},
+  {name:'Kettlebell Swings',sets:'5',reps:'20',tip:'Hip hinge — not squat. Snap the hips like a battering ram. Russian style'},
+  {name:'Stair Climber HIIT',sets:'4',reps:'60s all-out',tip:'Every step is a climb toward greatness. Don\'t look down, only up'},
+  {name:'Rowing Machine Sprint',sets:'5',reps:'250m',tip:'Drive with legs first, lean back, pull to chest. Full body explosive power'},
+  {name:'Mountain Climbers',sets:'4',reps:'40 each leg',tip:'Keep hips flat, core braced. High speed — like you\'re running from death itself'},
+  {name:'Assault Bike Tabata',sets:'8',reps:'20s on / 10s off',tip:'Legs AND arms. The assault bike has no mercy. Neither do you'},
+  {name:'Box Jump to Depth Drop',sets:'4',reps:'8',tip:'Land soft, absorb force, re-explode. Train the reactive chain like a coiled spring'},
+  {name:'Bear Crawl Sprints',sets:'5',reps:'10 meters',tip:'Stay low, hips level, move fast. Primal power — humans were built for this'},
+];
+
+const DIET_TEMPLATES = {
+  muscle:[
+    {time:'7:00 AM',name:'Pre-Workout Breakfast',items:['Oats 150g — 540 kcal','6 Egg Whites + 2 Whole Eggs — 230 kcal','Banana 1 large — 120 kcal','Peanut Butter 1 tbsp — 95 kcal'],p:'42g',c:'85g',f:'18g'},
+    {time:'10:30 AM',name:'Mid-Morning Fuel',items:['Greek Yogurt 200g — 130 kcal','Mixed Berries 100g — 60 kcal','Whey Protein Shake — 140 kcal'],p:'38g',c:'22g',f:'4g'},
+    {time:'1:30 PM',name:'Power Lunch',items:['Chicken Breast 200g — 330 kcal','Brown Rice 200g — 260 kcal','Broccoli + Vegetables — 80 kcal','Olive Oil 1 tbsp — 120 kcal'],p:'58g',c:'65g',f:'16g'},
+    {time:'5:00 PM',name:'Pre-Workout Snack',items:['Sweet Potato 150g — 130 kcal','Cottage Cheese 100g — 98 kcal','Apple 1 medium — 95 kcal'],p:'22g',c:'55g',f:'3g'},
+    {time:'8:00 PM',name:'Post-Workout Dinner',items:['Salmon 200g — 412 kcal','Quinoa 150g — 180 kcal','Mixed Salad + Avocado — 180 kcal'],p:'52g',c:'38g',f:'28g'},
+    {time:'10:30 PM',name:'Night Recovery',items:['Casein Protein Shake — 120 kcal','Almonds 25g — 145 kcal'],p:'26g',c:'8g',f:'10g'},
+  ],
+  fat_loss:[
+    {time:'7:00 AM',name:'Fat-Burning Breakfast',items:['Egg Whites 6 — 96 kcal','Spinach + Mushrooms — 40 kcal','Black Coffee — 5 kcal'],p:'28g',c:'6g',f:'1g'},
+    {time:'12:00 PM',name:'Lean Lunch',items:['Grilled Chicken 180g — 297 kcal','Large Salad + Lemon — 70 kcal','Cucumber + Tomato — 40 kcal'],p:'48g',c:'12g',f:'8g'},
+    {time:'4:00 PM',name:'Afternoon Fuel',items:['Tuna 150g — 175 kcal','Rice Cakes 2 — 70 kcal','Celery Sticks — 20 kcal'],p:'32g',c:'16g',f:'3g'},
+    {time:'7:30 PM',name:'Dinner',items:['Turkey Mince 200g — 218 kcal','Zucchini Noodles — 50 kcal','Tomato Sauce — 60 kcal'],p:'44g',c:'14g',f:'7g'},
+  ],
+  strength:[
+    {time:'7:00 AM',name:'Strength Breakfast',items:['4 Whole Eggs + 2 Whites — 330 kcal','Sourdough 2 slices — 200 kcal','Avocado half — 160 kcal','OJ 200ml — 90 kcal'],p:'36g',c:'52g',f:'22g'},
+    {time:'12:00 PM',name:'Strength Lunch',items:['Beef Steak 250g — 450 kcal','White Rice 200g — 260 kcal','Sweet Corn + Peas — 100 kcal'],p:'58g',c:'72g',f:'18g'},
+    {time:'3:30 PM',name:'Pre-Lift Fuel',items:['Creatine 5g','Whey Shake 1.5 scoops — 200 kcal','Banana 1 — 120 kcal'],p:'38g',c:'32g',f:'3g'},
+    {time:'7:00 PM',name:'Recovery Dinner',items:['Salmon 250g — 515 kcal','Pasta 200g — 280 kcal','Olive Oil + Garlic — 80 kcal'],p:'56g',c:'70g',f:'24g'},
+  ],
+};
+const getGoalDiet = g => DIET_TEMPLATES[g] || DIET_TEMPLATES.muscle;
+
+// SALAAR INTRO
+let dlgIdx = 0, dlgTimer = null;
+
+function triggerSalaarIntro() {
+  const overlay = document.getElementById('salaar-intro');
+  overlay.classList.add('active');
+  document.getElementById('s-enter-btn').style.display = 'none';
+  dlgIdx = 0;
+  buildDots();
+  typeDialogue(SALAAR_DLGS[0]);
+}
+
+function buildDots() {
+  const c = document.getElementById('s-progress');
+  c.innerHTML = '';
+  SALAAR_DLGS.forEach((_,i) => {
+    const d = document.createElement('div');
+    d.className = 's-dot' + (i===0 ? ' active' : '');
+    c.appendChild(d);
+  });
+}
+
+function typeDialogue(text) {
+  clearTimeout(dlgTimer);
+  const el = document.getElementById('s-dialogue-text');
+  el.textContent = '';
+  let i = 0;
+  const dots = document.querySelectorAll('.s-dot');
+  dots.forEach((d,j) => d.classList.toggle('active', j===dlgIdx));
+  const iv = setInterval(() => {
+    el.textContent += text[i++];
+    if (i >= text.length) {
+      clearInterval(iv);
+      dlgIdx++;
+      if (dlgIdx < SALAAR_DLGS.length) {
+        dlgTimer = setTimeout(() => typeDialogue(SALAAR_DLGS[dlgIdx]), 1400);
+      } else {
+        setTimeout(() => { document.getElementById('s-enter-btn').style.display = 'inline-block'; }, 800);
+      }
+    }
+  }, 38);
+}
+
+function enterSalaarMode() {
+  clearTimeout(dlgTimer);
+  document.getElementById('salaar-intro').classList.remove('active');
+  document.getElementById('salaar-section').scrollIntoView({behavior:'smooth'});
+  notify('🔱 Salaar Mode Activated! The arena is yours, warrior.');
+}
+
+// QUOTE ROTATOR
+let qIdx = 0;
+function rotateQuote() {
+  const el = document.getElementById('s-quote-text');
+  el.style.opacity = '0';
+  setTimeout(() => {
+    qIdx = (qIdx+1) % SALAAR_QUOTES.length;
+    el.textContent = '"' + SALAAR_QUOTES[qIdx] + '"';
+    el.style.opacity = '1';
+  }, 500);
+}
+setInterval(rotateQuote, 5000);
+
+// SALAAR SESSION
+let sInt = null, sSec = 0;
+function startSalaarSession() {
+  document.getElementById('s-session-btns').style.display = 'none';
+  document.getElementById('s-mode-active').classList.add('on');
+  sSec = 0;
+  sInt = setInterval(() => {
+    sSec++;
+    document.getElementById('s-timer').textContent = pad(Math.floor(sSec/60))+':'+pad(sSec%60);
+  }, 1000);
+  notify('🔱 Salaar Session started. Train like a legend.');
+}
+function stopSalaarSession() {
+  clearInterval(sInt);
+  document.getElementById('s-mode-active').classList.remove('on');
+  document.getElementById('s-session-btns').style.display = 'flex';
+  notify('🔱 Session: '+Math.floor(sSec/60)+'m '+sSec%60+'s. A warrior\'s work is never done.');
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+
+// BUILD SALAAR CARDIO
+function buildSalaarCardio() {
+  const g = document.getElementById('s-cardio-grid');
+  SALAAR_CARDIO.forEach((ex,i) => {
+    const c = document.createElement('div');
+    c.className = 's-ex-card';
+    c.innerHTML = `<div class="s-ex-num">${String(i+1).padStart(2,'0')}</div><div class="s-ex-name">${ex.name}</div><div class="s-ex-detail">${ex.tip}</div><div class="s-ex-sets">${ex.sets} rounds × ${ex.reps}</div>`;
+    g.appendChild(c);
+  });
+}
+
+// PROFILE
+function saveProfile() {
+  const name=document.getElementById('inp-name').value.trim(), age=document.getElementById('inp-age').value, weight=document.getElementById('inp-weight').value, height=document.getElementById('inp-height').value, goal=document.getElementById('inp-goal').value, exp=document.getElementById('inp-exp').value;
+  if (!name||!age||!weight||!height){notify('⚠️ Please fill all fields!');return;}
+  DB.set('profile',{name,age,weight,height,goal,exp,saved:new Date().toISOString()});
+  document.getElementById('user-name-nav').textContent='— '+name.toUpperCase();
+  document.getElementById('user-name-nav').style.display='inline';
+  notify('✅ Profile saved! Welcome, '+name+'! Let\'s get to work.');
+  generateDiet(goal); updateProgress();
+  document.getElementById('bmi-weight').value=weight;
+  document.getElementById('bmi-height').value=height;
+  calcBMI();
+}
+function loadProfile() {
+  const p=DB.get('profile');
+  if(p){
+    document.getElementById('inp-name').value=p.name||'';
+    document.getElementById('inp-age').value=p.age||'';
+    document.getElementById('inp-weight').value=p.weight||'';
+    document.getElementById('inp-height').value=p.height||'';
+    document.getElementById('inp-goal').value=p.goal||'muscle';
+    document.getElementById('inp-exp').value=p.exp||'beginner';
+    document.getElementById('user-name-nav').textContent='— '+p.name.toUpperCase();
+    document.getElementById('user-name-nav').style.display='inline';
+    document.getElementById('bmi-weight').value=p.weight;
+    document.getElementById('bmi-height').value=p.height;
+    calcBMI();
+  }
+}
+
+// WEEK GRID
+function buildWeekGrid() {
+  const grid=document.getElementById('week-grid'); grid.innerHTML='';
+  SPLIT.forEach((d,i)=>{
+    const card=document.createElement('div');
+    card.className='day-card'+(d.muscle==='REST'?' rest':'');
+    card.innerHTML=`<div class="day-icon">${d.icon}</div><div class="day-name">${d.day}</div><div class="day-muscle">${d.muscle}</div>`;
+    if(d.muscle!=='REST') card.onclick=()=>showDay(i,card);
+    grid.appendChild(card);
+  });
+}
+let currentDay=null;
+function showDay(i,card) {
+  document.querySelectorAll('.day-card').forEach(c=>c.classList.remove('active'));
+  card.classList.add('active');
+  currentDay=SPLIT[i];
+  document.getElementById('panel-title').textContent=SPLIT[i].muscle+' DAY';
+  renderExercises(SPLIT[i].exercises);
+  const panel=document.getElementById('exercise-panel');
+  panel.classList.add('show');
+  panel.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function renderExercises(exercises) {
+  const grid=document.getElementById('exercise-grid'); grid.innerHTML='';
+  exercises.forEach((ex,i)=>{
+    const c=document.createElement('div'); c.className='exercise-card';
+    c.innerHTML=`<div class="ex-num">0${i+1}</div><div class="ex-name">${ex.name}</div><div class="ex-detail">${ex.tip}</div><div class="ex-sets">${ex.sets} sets × ${ex.reps} reps</div>`;
+    grid.appendChild(c);
+  });
+}
+async function generateAIWorkout() {
+  if(!currentDay) return;
+  const p=DB.get('profile')||{};
+  notify('🤖 AI generating workout...');
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`Generate a ${currentDay.muscle} workout for a ${p.exp||'beginner'} level gym-goer with goal: ${p.goal||'muscle'}. Return ONLY a JSON array of 6 exercises like: [{"name":"Exercise","sets":"4","reps":"8-10","tip":"form tip"}]. No markdown.`}]})});
+    const data=await res.json();
+    let text=data.content?.[0]?.text||'';
+    text=text.replace(/```json|```/g,'').trim();
+    renderExercises(JSON.parse(text));
+    notify('✅ AI workout generated!');
+  } catch(e){ notify('⚡ Using default exercises'); }
+}
+
+// BEAST MODE
+let bInt=null,bSec=0;
+function startBeast() {
+  document.getElementById('beast-default').style.display='none';
+  document.getElementById('beast-active').classList.add('on');
+  bSec=0; bInt=setInterval(()=>{ bSec++; document.getElementById('beast-timer').textContent=pad(Math.floor(bSec/60))+':'+pad(bSec%60); },1000);
+}
+function stopBeast() {
+  clearInterval(bInt);
+  document.getElementById('beast-active').classList.remove('on');
+  document.getElementById('beast-default').style.display='block';
+  notify('🔥 Beast session: '+Math.floor(bSec/60)+'min '+bSec%60+'sec. Respect.');
+  const s=DB.get('sessions')||[]; s.push({date:new Date().toLocaleDateString(),duration:bSec}); DB.set('sessions',s);
+}
+
+// DIET
+function buildDietDayBtns() {
+  const c=document.getElementById('diet-day-btns'); c.innerHTML='';
+  const p=DB.get('profile')||{}, goal=p.goal||'muscle';
+  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d=>{ const btn=document.createElement('button'); btn.className='btn btn-outline btn-sm'; btn.textContent=d; btn.onclick=()=>{generateDiet(goal);notify('🥗 Diet updated for '+d);}; c.appendChild(btn); });
+}
+async function generateDiet(goal) {
+  document.getElementById('diet-loading').classList.add('show');
+  document.getElementById('diet-grid').innerHTML='';
+  const p=DB.get('profile')||{};
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`Create a full day meal plan for: goal=${goal}, weight=${p.weight||75}kg, height=${p.height||175}cm, age=${p.age||25}. Return ONLY a JSON array: [{"time":"7:00 AM","name":"Meal Name","items":["food 100g — 200 kcal"],"p":"40g","c":"50g","f":"10g"}]. 4-6 meals. Only JSON.`}]})});
+    const data=await res.json();
+    let text=data.content?.[0]?.text||''; text=text.replace(/```json|```/g,'').trim();
+    document.getElementById('diet-loading').classList.remove('show');
+    renderMeals(JSON.parse(text));
+  } catch(e){ document.getElementById('diet-loading').classList.remove('show'); renderMeals(getGoalDiet(goal)); }
+}
+function renderMeals(meals) {
+  const g=document.getElementById('diet-grid'); g.innerHTML='';
+  meals.forEach(m=>{ const c=document.createElement('div'); c.className='meal-card'; const items=Array.isArray(m.items)?m.items.map(i=>`<li><span>${i}</span></li>`).join(''):''; c.innerHTML=`<div class="meal-time">${m.time}</div><div class="meal-name">${m.name}</div><ul class="meal-items">${items}</ul><div><span class="macro-badge">Protein: ${m.p||'—'}</span><span class="macro-badge">Carbs: ${m.c||'—'}</span><span class="macro-badge">Fat: ${m.f||'—'}</span></div>`; g.appendChild(c); });
+}
+
+// BMI
+function calcBMI() {
+  const w=parseFloat(document.getElementById('bmi-weight').value), h=parseFloat(document.getElementById('bmi-height').value)/100;
+  if(!w||!h) return;
+  const bmi=(w/(h*h)).toFixed(1);
+  document.getElementById('bmi-val').textContent=bmi;
+  let cat,pct,advice;
+  if(bmi<18.5){cat='UNDERWEIGHT';pct=10;advice='Focus on caloric surplus with nutrient-dense foods and strength training.';}
+  else if(bmi<25){cat='NORMAL WEIGHT';pct=35;advice='You are in the healthy BMI range. Maintain with balanced nutrition and training.';}
+  else if(bmi<30){cat='OVERWEIGHT';pct=60;advice='Consider a 300-500 kcal deficit with cardio and strength training.';}
+  else{cat='OBESE';pct=85;advice='Prioritize lifestyle changes with medical guidance. Every step counts.';}
+  document.getElementById('bmi-cat').textContent=cat;
+  document.getElementById('bmi-ind').style.left=pct+'%';
+  document.getElementById('bmi-advice').textContent=advice;
+  document.getElementById('bmi-result').style.display='block';
+}
+
+// PROGRESS
+function logProgress() {
+  const weight=document.getElementById('log-weight').value;
+  if(!weight){notify('⚠️ Please enter at least your weight');return;}
+  const logs=DB.get('progress_logs')||[];
+  logs.push({date:new Date().toLocaleDateString(),weight,workouts:document.getElementById('log-workouts').value,cals:document.getElementById('log-cals').value,water:document.getElementById('log-water').value});
+  DB.set('progress_logs',logs); notify('📈 Progress logged! Keep going!'); updateProgress();
+}
+function updateProgress() {
+  const logs=DB.get('progress_logs')||[], p=DB.get('profile')||{}, sessions=DB.get('sessions')||[];
+  const sw=parseFloat(p.weight)||0, lw=logs.length?parseFloat(logs[logs.length-1].weight):sw, wc=(lw-sw).toFixed(1);
+  const stats=[{val:logs.length,unit:'days',label:'Days Logged',change:'Keep it up!'},{val:lw,unit:'kg',label:'Current Weight',change:(wc>0?'+':'')+wc+'kg since start'},{val:sessions.length,unit:'',label:'Beast Sessions',change:Math.round(sessions.reduce((a,s)=>a+s.duration,0)/60)+' total mins'},{val:Math.round(logs.reduce((a,l)=>a+(parseInt(l.workouts)||0),0)/Math.max(logs.length,1)),unit:'',label:'Avg Workouts/Day',change:'This week'}];
+  const grid=document.getElementById('progress-grid'); grid.innerHTML='';
+  stats.forEach(s=>{const c=document.createElement('div');c.className='stat-card';c.innerHTML=`<div class="stat-val">${s.val}<span class="stat-unit">${s.unit}</span></div><div class="stat-label">${s.label}</div><div class="stat-change">${s.change}</div>`;grid.appendChild(c);});
+  if(logs.length>0){const hist=document.getElementById('progress-history');let html=`<p style="font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:16px;">Recent Log History</p><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;max-width:700px;"><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:8px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;font-weight:400;font-size:12px;">DATE</th><th style="text-align:left;padding:8px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;font-weight:400;font-size:12px;">WEIGHT</th><th style="text-align:left;padding:8px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;font-weight:400;font-size:12px;">WORKOUTS</th><th style="text-align:left;padding:8px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;font-weight:400;font-size:12px;">CALORIES</th><th style="text-align:left;padding:8px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;font-weight:400;font-size:12px;">WATER</th></tr>`;
+  logs.slice(-7).reverse().forEach(l=>{html+=`<tr style="border-bottom:1px solid var(--border);"><td style="padding:10px 8px;color:var(--text);">${l.date}</td><td style="padding:10px 8px;color:var(--red);font-family:'Bebas Neue',sans-serif;font-size:18px;">${l.weight}kg</td><td style="padding:10px 8px;color:var(--text);">${l.workouts||'—'}</td><td style="padding:10px 8px;color:var(--text);">${l.cals||'—'} kcal</td><td style="padding:10px 8px;color:var(--text);">${l.water||'—'} L</td></tr>`;});
+  html+='</table></div>'; hist.innerHTML=html;}
+}
+
+// AI CHAT
+async function sendChat() {
+  const input=document.getElementById('chat-input'), msg=input.value.trim();
+  if(!msg) return; input.value='';
+  addChatMsg('user',msg);
+  const p=DB.get('profile')||{};
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:200,messages:[{role:'user',content:`You are BEAST, an intense motivating AI gym coach. User: name=${p.name||'Athlete'}, goal=${p.goal||'muscle'}, exp=${p.exp||'beginner'}, weight=${p.weight||'?'}kg. Give short, direct, powerful fitness advice. Max 120 words. Use occasional emojis.\n\nQuestion: ${msg}`}]})});
+    const data=await res.json();
+    addChatMsg('ai',data.content?.[0]?.text||'Stay focused, beast! 💪');
+  } catch(e){ addChatMsg('ai',"Network issue but excuses don't build muscle! Keep pushing! 🔥"); }
+}
+function addChatMsg(role,text) {
+  const box=document.getElementById('chat-box'), div=document.createElement('div');
+  div.className='chat-msg '+role;
+  div.innerHTML=`<div class="chat-sender">${role==='ai'?'AI Coach':'You'}</div><div class="chat-bubble">${text}</div>`;
+  box.appendChild(div); box.scrollTop=box.scrollHeight;
+}
+
+// NOTIFY
+function notify(msg) {
+  const el=document.getElementById('notif'); el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),3500);
+}
+
+// SMOOTH NAV
+document.querySelectorAll('a[href^="#"]').forEach(a=>{ a.addEventListener('click',e=>{e.preventDefault();document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth'});}); });
+
+// INIT
+buildWeekGrid(); loadProfile(); buildDietDayBtns(); buildSalaarCardio();
+const profile=DB.get('profile');
+if(profile){ generateDiet(profile.goal||'muscle'); updateProgress(); }
+else { renderMeals(getGoalDiet('muscle')); }
+</script>
+</body>
+</html>
